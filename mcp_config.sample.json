@@ -1,0 +1,14 @@
+{
+    "_comment": [
+        "This is a sample MCP config file for Copilot in IDE.",
+        "Add this MCP configuration and fill in your github token."
+    ],
+    "mcpServers": {
+        "github": {
+            "httpUrl": "https://api.githubcopilot.com/mcp/",
+            "headers": {
+                "Authorization": "Bearer ${GITHUB_PAT}"
+            }
+        }
+    }
+}

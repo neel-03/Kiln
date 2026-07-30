@@ -1,0 +1,29 @@
+name: Issue triage
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write     # to add labels and post the comment
+  contents: read
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    # skipping triage on issues opened by bots (e.g. this workflow re-triggering
+    # itself, or dependency-bot-style issues) to avoid loops/noise.
+    if: github.event.issue.user.type != 'Bot'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Triage issue with Gemini
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: node scripts/triage-issue.mjs

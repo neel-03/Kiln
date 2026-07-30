@@ -1,0 +1,77 @@
+# codeRabbit configuration
+language: "en-US"
+reviews:
+  profile: "chill"
+  high_level_summary: true
+  poem: false                     # keep summary professional
+  review_status: true             # post a review status comment even with 0 issues found
+  collapse_walkthrough: true      # keep the file-by-file walkthrough collapsed by default
+
+  auto_review:
+    enabled: true
+    drafts: false                 # don't burn review cycles on draft PRs
+
+  # Never waste review attention on generated, vendored, or lockfile content.
+  # Safe to leave as-is even before these paths exist — an unmatched filter
+  # is simply a no-op.
+  path_filters:
+    - "!**/*.lock"
+    - "!**/go.sum"
+    - "!**/vendor/**"
+    - "!**/.kiln/env/**"          # rendered output — reviewing generated files is noise
+    - "!**/dist/**"
+    - "!**/*.min.js"
+    - "!**/testdata/**/*.golden"  # golden test fixtures are intentionally verbatim
+
+  # Path-specific review instructions. Each only activates once a PR touches
+  # a matching path — nothing here needs to be added or removed as the repo
+  # grows into this shape, it just starts applying on its own.
+  path_instructions:
+    # --- Early-stage / bootstrapping files (relevant from commit one) ---
+    - path: "go.mod"
+      instructions: >
+        Flag any dependency added without a clear reason visible in the same
+        PR (description or a code comment). This project aims to keep its
+        core dependency footprint small — question any new module that
+        duplicates something the Go standard library already covers.
+
+    - path: "{Makefile,*.mk}"
+      instructions: >
+        Check that any new target is documented with a comment above it
+        explaining what it does and when to run it.
+
+    - path: ".github/workflows/*.yml"
+      instructions: >
+        Check for overly broad `permissions:` (prefer the minimum scope a
+        job actually needs), and check that any job calling an external
+        action pins a version rather than using a floating tag like
+        `@main` or `@latest`.
+
+  tools:
+    golangci-lint:
+      enabled: true
+    gitleaks:
+      enabled: true               # secret-scanning on every diff
+    semgrep:
+      enabled: true
+
+  instructions: >
+    This project follows a small set of hard design rules, which apply from
+    the moment the relevant code is introduced — do not treat early or small
+    PRs as exempt, but also do not flag a rule as violated just because the
+    relevant directory or file doesn't exist yet in this PR. The rules: (1)
+    the core package, once it exists, must never import anything
+    plugin-specific or target-specific, (2) every plugin-facing interface
+    method takes context.Context and returns error, (3) nothing should be
+    read from the local state file during config resolution, only during
+    planning, once that file exists. Flag violations of any of these as a
+    Critical-severity comment, not a nitpick. (4) Any PR that adds a new
+    core-level patch point, hook name, or CLI command must update the
+    reference documentation in the same PR — flag a missing doc update as a
+    Critical-severity comment, not a suggestion. See .gemini/skills/kiln/SKILL.md
+    for the full rule set, anti-pattern catalog, and the project's current build
+    stage — treat it as this repo's authoritative rules document, and defer
+    to its "Current state of this repo" section over any assumption made here.
+
+chat:
+  auto_reply: true
