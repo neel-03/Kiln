@@ -30,9 +30,6 @@ jobs:
       - name: Verify modules
         run: go mod verify
 
-      - name: Vet
-        run: go vet ./...
-
       - name: Build
         run: go build ./...
 
@@ -54,7 +51,7 @@ jobs:
       - name: golangci-lint
         uses: golangci-lint-action@v6
         with:
-          version: latest
+          version: v1.63.4
           args: --timeout=5m
 
   integration:

@@ -1,0 +1,28 @@
+version: "2"
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - ineffassign
+    - gocritic
+    - revive
+
+  settings:
+    revive:
+      rules:
+        - name: exported
+          severity: warning
+
+  exclusions:
+    paths:
+      - vendor
+      - examples/.*/services
+
+formatters:
+  exclusions:
+    paths:
+      - vendor
+      - examples/.*/services

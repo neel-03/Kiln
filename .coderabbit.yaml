@@ -10,6 +10,9 @@ reviews:
   auto_review:
     enabled: true
     drafts: false                 # don't burn review cycles on draft PRs
+    base_branches:
+      - "^main$"
+      - "^development$"
 
   # Never waste review attention on generated, vendored, or lockfile content.
   # Safe to leave as-is even before these paths exist — an unmatched filter
