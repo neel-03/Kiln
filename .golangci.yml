@@ -16,7 +16,13 @@ linters:
         - name: exported
           severity: warning
 
-issues:
-  exclude-dirs:
-    - vendor
-    - examples/.*/services
+  exclusions:
+    paths:
+      - vendor
+      - examples/.*/services
+
+formatters:
+  exclusions:
+    paths:
+      - vendor
+      - examples/.*/services
