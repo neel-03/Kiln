@@ -42,6 +42,9 @@ func newRootCmd() *cobra.Command {
 			}
 			return nil
 		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return cmd.Help()
+		},
 
 		// silencing errors and usage messages as of now
 		// since individual subcommands will control them on their own
@@ -52,7 +55,7 @@ func newRootCmd() *cobra.Command {
 	flags := rootCmd.PersistentFlags()
 
 	flags.StringVar(&opts.Environment, "env", "", "Environment to run in.")
-	flags.StringVar(&opts.Format, "format", formatDefault, "Output format (Yaml/Json).")
+	flags.StringVar(&opts.Format, "format", formatDefault, "Output format (yaml/json).")
 	flags.BoolVar(&opts.NoColor, "no-color", false, "Disable ANSI color output.")
 	flags.CountVarP(&opts.Verbosity, "verbose", "v", "Increase log verbosity (repeatable).")
 
