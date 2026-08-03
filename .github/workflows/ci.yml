@@ -28,13 +28,19 @@ jobs:
           cache: true
 
       - name: Verify modules
-        run: go mod verify
+        run: |
+          go mod verify
+          cd tools && go mod verify
 
       - name: Build
-        run: go build ./...
+        run: |
+          go build ./...
+          cd tools && go build ./...
 
       - name: Test (unit only, no docker/network)
-        run: go test -race -count=1 -short ./...
+        run: |
+          go test -race -count=1 -short ./...
+          cd tools && go test -race -count=1 -short ./...
 
       - name: Upload coverage
         if: matrix.go-version == '1.26'
@@ -48,10 +54,17 @@ jobs:
         with:
           go-version: "1.26"
           cache: true
-      - name: golangci-lint
+      - name: golangci-lint (root)
         uses: golangci/golangci-lint-action@v9
         with:
           version: v2.12.2
+          args: --timeout=5m
+
+      - name: golangci-lint (tools)
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.12.2
+          working-directory: tools
           args: --timeout=5m
 
   integration:
