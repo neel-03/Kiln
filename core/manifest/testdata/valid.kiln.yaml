@@ -53,7 +53,7 @@ tasks:
     depends_on:
       - postgres
 
-    phase: pre_init
+    phase: pre-init
 
     when: project.enabled
 

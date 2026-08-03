@@ -197,7 +197,7 @@ func assertValidManifest(t *testing.T, m *ProjectManifest) {
 		t.Fatalf("unexpected task depends_on: %q", initTask.DependsOn[0])
 	}
 
-	if initTask.Phase != "pre_init" {
+	if initTask.Phase != "pre-init" {
 		t.Fatalf("unexpected task phase: %q", initTask.Phase)
 	}
 
