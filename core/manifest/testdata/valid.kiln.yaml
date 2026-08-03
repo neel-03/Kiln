@@ -1,0 +1,60 @@
+apiVersion: kiln/v1
+kind: Project
+
+metadata:
+  name: acme-storefront
+
+plugins:
+  - path: ./plugins/postgres
+
+  - module: github.com/example/auth-plugin@v1.2.3
+
+services:
+  web:
+    image: nginx:latest
+
+    replicas: "${web.replicas}"
+
+    env:
+      APP_ENV: production
+      LOG_LEVEL: info
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      - name: web-data
+        mount: /var/www
+        size: "${web.storage_gb}Gi"
+
+    depends_on:
+      - postgres
+
+    healthcheck:
+      http: http://localhost/health
+      interval: 30s
+
+  postgres:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VERSION: "16"
+
+tasks:
+  init-db:
+    runs_on: postgres
+
+    command:
+      - migrate
+      - up
+
+    depends_on:
+      - postgres
+
+    phase: pre_init
+
+    when: project.enabled
+
+    idempotent: true
