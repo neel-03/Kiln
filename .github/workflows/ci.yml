@@ -30,23 +30,25 @@ jobs:
       - name: Verify modules
         run: |
           go mod verify
-          cd tools && go mod verify
+          go -C tools mod verify
 
       - name: Build
         run: |
           go build ./...
-          cd tools && go build ./...
+          go -C tools build ./...
 
       - name: Test (unit only, no docker/network)
         run: |
           go test -race -count=1 -short ./...
-          cd tools && go test -race -count=1 -short ./...
+          go -C tools test -race -count=1 -short ./...
 
       - name: Upload coverage
         if: matrix.go-version == '1.26'
-        run: go test -short -coverprofile=coverage.out ./...
+        run: |
+          go test -short -coverprofile=coverage.out ./...
+          go -C tools test -short -coverprofile=coverage.out ./...
 
-  lint:
+  lint-root:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -60,6 +62,14 @@ jobs:
           version: v2.12.2
           args: --timeout=5m
 
+  lint-tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache: true
       - name: golangci-lint (tools)
         uses: golangci/golangci-lint-action@v9
         with:

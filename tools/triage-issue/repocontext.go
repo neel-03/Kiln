@@ -96,7 +96,18 @@ func collectFileContents(root string, relativePaths []string, maxTotalBytes int)
 			continue
 		}
 		section := fmt.Sprintf("--- %s ---\n%s", rel, content)
-		used += len(section)
+
+		overhead := 0
+		if len(sections) > 0 {
+			overhead = 2
+		}
+
+		if used+overhead+len(section) > maxTotalBytes {
+			sections = append(sections, fmt.Sprintf("(skipped remaining files — repo context byte limit of %d reached)", maxTotalBytes))
+			break
+		}
+
+		used += overhead + len(section)
 		sections = append(sections, section)
 	}
 	return strings.Join(sections, "\n\n")

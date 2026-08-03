@@ -11,14 +11,17 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 )
 
 var (
@@ -213,18 +216,19 @@ exactly this shape:
 	}
 
 	endpoint := fmt.Sprintf(geminiEndpointTmpl, geminiModel)
-	req, err := http.NewRequest(http.MethodPost, endpoint, strings.NewReader(string(encoded)))
+	req, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewReader(encoded))
 	if err != nil {
 		return triageResult{}, fmt.Errorf("building gemini request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-goog-api-key", apiKey)
 
-	res, err := http.DefaultClient.Do(req)
+	client := &http.Client{Timeout: 30 * time.Second}
+	res, err := client.Do(req)
 	if err != nil {
 		return triageResult{}, fmt.Errorf("gemini API request failed: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	respBytes, err := io.ReadAll(res.Body)
 	if err != nil {
@@ -303,13 +307,17 @@ func run() error {
 
 	relatedFiles := findRelatedFiles(client, owner, repo, iss)
 
-	cwd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("getting working directory: %w", err)
+	repoRoot := os.Getenv("REPO_ROOT")
+	if repoRoot == "" {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("getting working directory: %w", err)
+		}
+		repoRoot = cwd
 	}
-	repoTree := buildRepoTree(cwd)
-	rules, hasRules := readFileSafe(rulesFile, rulesFileBytes)
-	relatedFileContents := collectFileContents(cwd, relatedFiles, relatedFilesMaxTotalBytes)
+	repoTree := buildRepoTree(repoRoot)
+	rules, hasRules := readFileSafe(filepath.Join(repoRoot, rulesFile), rulesFileBytes)
+	relatedFileContents := collectFileContents(repoRoot, relatedFiles, relatedFilesMaxTotalBytes)
 
 	result, err := askGemini(geminiAPIKey, iss, relatedFiles, repoTree, rules, hasRules, relatedFileContents)
 	if err != nil {

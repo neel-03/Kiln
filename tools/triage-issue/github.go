@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 )
 
 // githubAPIBase is a var, not a const, so tests can redirect it to a mock
@@ -40,7 +41,7 @@ type githubClient struct {
 func newGitHubClient(token string) *githubClient {
 	return &githubClient{
 		token:      token,
-		httpClient: &http.Client{},
+		httpClient: &http.Client{Timeout: 15 * time.Second},
 	}
 }
 
@@ -74,7 +75,7 @@ func (c *githubClient) do(method, urlPath string, body any, out any) error {
 	if err != nil {
 		return fmt.Errorf("GitHub API %s failed: %w", urlPath, err)
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	respBytes, err := io.ReadAll(res.Body)
 	if err != nil {
