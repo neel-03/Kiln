@@ -1,0 +1,12 @@
+apiVersion: kiln/v1
+kind: Project
+
+metadata:
+  name: acme-storefront
+
+---
+apiVersion: kiln/v1
+kind: Project
+
+metadata:
+  name: acme-storefront-2

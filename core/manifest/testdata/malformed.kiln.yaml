@@ -1,0 +1,10 @@
+apiVersion: kiln/v1
+
+kind: Project
+
+metadata:
+name: broken
+
+services:
+  web:
+    image: nginx

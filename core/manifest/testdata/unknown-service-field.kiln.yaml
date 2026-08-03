@@ -1,0 +1,11 @@
+apiVersion: kiln/v1
+kind: Project
+
+metadata:
+  name: acme-storefront
+
+services:
+  web:
+    image: nginx
+    depnds_on:
+      - postgres
