@@ -4,7 +4,7 @@ This reference details the schema, structural constraints, and validation rules 
 
 ---
 
-## `kiln.yml` Structural Validation Rules
+## `kiln.yaml` Structural Validation Rules
 
 When you load a project manifest, the compiler enforces the following structural rules:
 

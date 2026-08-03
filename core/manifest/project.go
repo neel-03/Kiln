@@ -3,6 +3,7 @@ package manifest
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 
 	"gopkg.in/yaml.v3"
@@ -140,6 +141,11 @@ func LoadProjectManifest(path string) (*ProjectManifest, error) {
 	var manifest ProjectManifest
 	if err := decoder.Decode(&manifest); err != nil {
 		return nil, fmt.Errorf("loading manifest %s: %w", path, err)
+	}
+
+	// Reject trailing YAML documents or content to guarantee strict single-document loading.
+	if err := decoder.Decode(new(yaml.Node)); err != io.EOF {
+		return nil, fmt.Errorf("loading manifest %s: unexpected additional YAML document", path)
 	}
 
 	return &manifest, nil

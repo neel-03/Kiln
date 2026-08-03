@@ -106,10 +106,7 @@ func validateHeader(ve *ValidationError, m *ProjectManifest) {
 func validatePlugins(ve *ValidationError, m *ProjectManifest) {
 	for i, plugin := range m.Plugins {
 
-		pathSet := plugin.Path != ""
-		moduleSet := plugin.Module != ""
-
-		if pathSet == moduleSet {
+		if countSet(plugin.Path != "", plugin.Module != "") != 1 {
 			ve.Append(
 				`plugins[%d]: exactly one of "path" or "module" must be set`,
 				i,
@@ -117,7 +114,7 @@ func validatePlugins(ve *ValidationError, m *ProjectManifest) {
 			continue
 		}
 
-		if moduleSet {
+		if plugin.Module != "" {
 
 			if idx := strings.LastIndex(plugin.Module, "@"); idx >= 0 {
 
@@ -143,21 +140,7 @@ func validatePlugins(ve *ValidationError, m *ProjectManifest) {
 func validateServices(ve *ValidationError, m *ProjectManifest) {
 	for name, service := range m.Services {
 
-		count := 0
-
-		if service.From != "" {
-			count++
-		}
-
-		if service.Image != "" {
-			count++
-		}
-
-		if service.Build != nil {
-			count++
-		}
-
-		if count != 1 {
+		if countSet(service.From != "", service.Image != "", service.Build != nil) != 1 {
 			ve.Append(
 				`services.%s: exactly one of "from", "image", or "build" must be set`,
 				name,
@@ -166,17 +149,7 @@ func validateServices(ve *ValidationError, m *ProjectManifest) {
 
 		if service.HealthCheck != nil {
 
-			hcCount := 0
-
-			if service.HealthCheck.HTTP != "" {
-				hcCount++
-			}
-
-			if len(service.HealthCheck.Command) > 0 {
-				hcCount++
-			}
-
-			if hcCount != 1 {
+			if countSet(service.HealthCheck.HTTP != "", len(service.HealthCheck.Command) > 0) != 1 {
 				ve.Append(
 					`services.%s.healthcheck: exactly one of "http" or "command" must be set`,
 					name,
@@ -201,4 +174,16 @@ func validateTasks(ve *ValidationError, m *ProjectManifest) {
 			)
 		}
 	}
+}
+
+// countSet returns the number of true values among the given conditions.
+// Used to enforce "exactly one of N fields must be set" rules.
+func countSet(conditions ...bool) int {
+	n := 0
+	for _, c := range conditions {
+		if c {
+			n++
+		}
+	}
+	return n
 }

@@ -36,6 +36,12 @@ func TestLoadProjectManifest(t *testing.T) {
 			wantErr:     true,
 			errContains: "testdata/malformed.kiln.yaml",
 		},
+		{
+			name:        "multiple documents",
+			file:        "testdata/multiple-documents.kiln.yaml",
+			wantErr:     true,
+			errContains: "unexpected additional YAML document",
+		},
 	}
 
 	for _, tc := range tests {

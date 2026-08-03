@@ -14,11 +14,11 @@ const (
 	PreInitPhase string = "pre-init"
 	// InitPhase represents the main initialization tasks.
 	InitPhase string = "init"
-	// PostInit represents tasks that run after initialization.
-	PostInit string = "post-init"
+	// PostInitPhase represents tasks that run after initialization.
+	PostInitPhase string = "post-init"
 	// RuntimePhase represents long-running or runtime execution tasks.
 	RuntimePhase string = "runtime"
 )
 
 // ValidPhases is the ordered list of all supported project phases.
-var ValidPhases = []string{BuildPhase, PreInitPhase, InitPhase, PostInit, RuntimePhase}
+var ValidPhases = []string{BuildPhase, PreInitPhase, InitPhase, PostInitPhase, RuntimePhase}
