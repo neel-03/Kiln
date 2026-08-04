@@ -180,7 +180,7 @@ relevant to this specific issue):
 
 Kiln's hard design rules and conventions (%s). Treat anything
 that looks like it would violate a rule in the "Hard rules" section below
-as grounds for the "needs-design-review" label, and say why in the comment:
+as grounds for the "needs design review" label, and say why in the comment:
 %s
 
 Files that matched keywords from this issue, with their full current
