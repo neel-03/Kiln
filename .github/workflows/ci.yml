@@ -21,6 +21,8 @@ jobs:
         go-version: ["1.26"]
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-go@v5
         with:
@@ -28,40 +30,66 @@ jobs:
           cache: true
 
       - name: Verify modules
-        run: go mod verify
+        run: |
+          go mod verify
+          go -C tools mod verify
 
       - name: Build
-        run: go build ./...
+        run: |
+          go build ./...
+          go -C tools build -o /dev/null ./...
 
       - name: Test (unit only, no docker/network)
-        run: go test -race -count=1 -short ./...
+        run: |
+          go test -race -count=1 -short ./...
+          go -C tools test -race -count=1 -short ./...
 
       - name: Upload coverage
         if: matrix.go-version == '1.26'
-        run: go test -short -coverprofile=coverage.out ./...
+        run: |
+          go test -short -coverprofile=coverage.out ./...
+          go -C tools test -short -coverprofile=coverage.out ./...
 
-  lint:
+  lint-root:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-go@v5
         with:
           go-version: "1.26"
           cache: true
-      - name: golangci-lint
+      - name: golangci-lint (root)
         uses: golangci/golangci-lint-action@v9
         with:
           version: v2.12.2
           args: --timeout=5m
 
+  lint-tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache: true
+      - name: golangci-lint (tools)
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.12.2
+          working-directory: tools
+          args: --timeout=5m
+
   integration:
     runs-on: ubuntu-latest
-    # Integration tests actually run docker compose against example projects
-    # (Section 14 of the design doc) — slower, so kept as a separate gated job
-    # rather than blocking the fast unit-test feedback loop above.
     needs: build-test
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-go@v5
         with:
           go-version: "1.26"
