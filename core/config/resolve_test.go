@@ -426,6 +426,153 @@ func TestResolve_Errors(t *testing.T) {
 			},
 			wantErr: `config key "db.host" has no default and was not set in any layer`,
 		},
+		{
+			name: "invalid default type",
+			providers: []SchemaProvider{
+				mockSchemaProvider{
+					keys: []Key{
+						{Namespace: "custom", Key: "key", Type: TypeInt, Default: "not-an-int"},
+					},
+				},
+			},
+			layers: []Layer{
+				{
+					Source: LayerUserConfig,
+					Values: map[string]any{
+						"project.name": "test",
+					},
+				},
+			},
+			wantErr: `config default for "custom.key": custom.key: expected int, got string "not-an-int"`,
+		},
+		{
+			name: "invalid default constraint",
+			providers: []SchemaProvider{
+				mockSchemaProvider{
+					keys: []Key{
+						{
+							Namespace: "custom",
+							Key:       "key",
+							Type:      TypeInt,
+							Min:       floatPtr(10),
+							Default:   5,
+						},
+					},
+				},
+			},
+			layers: []Layer{
+				{
+					Source: LayerUserConfig,
+					Values: map[string]any{
+						"project.name": "test",
+					},
+				},
+			},
+			wantErr: `config default for "custom.key": custom.key: value 5 is below minimum 10`,
+		},
+		{
+			name: "secret enum value redaction",
+			providers: []SchemaProvider{
+				mockSchemaProvider{
+					keys: []Key{
+						{
+							Namespace: "db",
+							Key:       "mode",
+							Type:      TypeString,
+							Enum:      []string{"dev", "prod"},
+							Secret:    true,
+						},
+					},
+				},
+			},
+			layers: []Layer{
+				{
+					Source: LayerUserConfig,
+					Values: map[string]any{
+						"project.name": "test",
+						"db.mode":      "sensitive-stage",
+					},
+				},
+			},
+			wantErr: `db.mode: value "<redacted>" must be one of [dev, prod]`,
+		},
+		{
+			name: "secret pattern value redaction",
+			providers: []SchemaProvider{
+				mockSchemaProvider{
+					keys: []Key{
+						{
+							Namespace: "db",
+							Key:       "slug",
+							Type:      TypeString,
+							Pattern:   `^[a-z]+$`,
+							Secret:    true,
+						},
+					},
+				},
+			},
+			layers: []Layer{
+				{
+					Source: LayerUserConfig,
+					Values: map[string]any{
+						"project.name": "test",
+						"db.slug":      "Secret123",
+					},
+				},
+			},
+			wantErr: `db.slug: value "<redacted>" does not match pattern "^[a-z]+$"`,
+		},
+		{
+			name: "secret numeric limit value redaction",
+			providers: []SchemaProvider{
+				mockSchemaProvider{
+					keys: []Key{
+						{
+							Namespace: "db",
+							Key:       "port",
+							Type:      TypeInt,
+							Min:       floatPtr(1024),
+							Secret:    true,
+						},
+					},
+				},
+			},
+			layers: []Layer{
+				{
+					Source: LayerUserConfig,
+					Values: map[string]any{
+						"project.name": "test",
+						"db.port":      80,
+					},
+				},
+			},
+			wantErr: `db.port: value <redacted> is below minimum 1024`,
+		},
+		{
+			name: "secret type mismatch value redaction",
+			providers: []SchemaProvider{
+				mockSchemaProvider{
+					keys: []Key{
+						{
+							Namespace: "db",
+							Key:       "port",
+							Type:      TypeInt,
+							Secret:    true,
+						},
+					},
+				},
+			},
+			layers: []Layer{
+				{
+					Source: LayerUserConfig,
+					Values: map[string]any{
+						"project.name": "test",
+						"db.port":      "eighty",
+					},
+				},
+			},
+			wantErr: `db.port: expected int, got string "<redacted>"`,
+		},
 	}
 
 	for _, tc := range tests {

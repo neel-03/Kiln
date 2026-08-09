@@ -148,7 +148,7 @@ func Resolve(
 		return ResolvedConfig{}, err
 	}
 
-	resolved := seedDefaults(schema)
+	resolved, errs := seedDefaults(schema, errs)
 	resolved, errs = mergeLayers(schema, resolved, layers, errs)
 	errs = checkCompleteness(schema, resolved, errs)
 
@@ -191,12 +191,17 @@ func gatherSchemas(
 }
 
 // seedDefaults initializes a ResolvedConfig with default values for all known keys.
-func seedDefaults(schema map[string]Key) ResolvedConfig {
+func seedDefaults(schema map[string]Key, errs *ResolveError) (ResolvedConfig, *ResolveError) {
 	resolved := ResolvedConfig{
 		values: make(map[string]ResolvedValue, len(schema)),
 	}
 
 	for _, key := range schema {
+		if key.Default != nil {
+			if err := key.Validate(key.Default); err != nil {
+				errs.Add(fmt.Errorf("config default for %q: %w", key.FullName(), err))
+			}
+		}
 		resolved.values[key.FullName()] = ResolvedValue{
 			Key:    key.FullName(),
 			Type:   key.Type,
@@ -206,7 +211,7 @@ func seedDefaults(schema map[string]Key) ResolvedConfig {
 		}
 	}
 
-	return resolved
+	return resolved, errs
 }
 
 // mergeLayers sorts the configuration layers by precedence and merges them into

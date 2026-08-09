@@ -125,7 +125,7 @@ func (k Key) validateString(v any) error {
 			return fmt.Errorf(
 				"%s: value %q must be one of [%s]",
 				k.FullName(),
-				value,
+				k.formatErrorValue(value),
 				strings.Join(k.Enum, ", "),
 			)
 		}
@@ -146,7 +146,7 @@ func (k Key) validateString(v any) error {
 			return fmt.Errorf(
 				"%s: value %q does not match pattern %q",
 				k.FullName(),
-				value,
+				k.formatErrorValue(value),
 				k.Pattern,
 			)
 		}
@@ -179,18 +179,18 @@ func (k Key) validateFloat(v any) error {
 func (k Key) validateNumericLimits(val float64, original any) error {
 	if k.Min != nil && val < *k.Min {
 		return fmt.Errorf(
-			"%s: value %v is below minimum %g",
+			"%s: value %s is below minimum %g",
 			k.FullName(),
-			original,
+			k.formatErrorValue(original),
 			*k.Min,
 		)
 	}
 
 	if k.Max != nil && val > *k.Max {
 		return fmt.Errorf(
-			"%s: value %v exceeds maximum %g",
+			"%s: value %s exceeds maximum %g",
 			k.FullName(),
-			original,
+			k.formatErrorValue(original),
 			*k.Max,
 		)
 	}
@@ -219,7 +219,7 @@ func (k Key) validateDuration(v any) error {
 			return fmt.Errorf(
 				"%s: invalid duration %q: %v",
 				k.FullName(),
-				value,
+				k.formatErrorValue(value),
 				err,
 			)
 		}
@@ -277,8 +277,16 @@ func (k Key) typeError(expected string, value any) error {
 		k.FullName(),
 		expected,
 		actual,
-		formatValue(value),
+		k.formatErrorValue(value),
 	)
+}
+
+// formatErrorValue formats a value for display in error messages, redacting it if k.Secret is true.
+func (k Key) formatErrorValue(v any) string {
+	if k.Secret {
+		return "<redacted>"
+	}
+	return formatValue(v)
 }
 
 // typeName returns the type name of a value.
