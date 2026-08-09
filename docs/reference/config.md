@@ -137,3 +137,40 @@ A configuration key can mark its values as sensitive by setting `secret: true`. 
 ## Validation Timing
 
 Every type and constraint is checked during `Resolve` time—before any template renders. If a configured value does not match the expected type or violates a constraint, Kiln will immediately abort and report a clear validation error.
+
+---
+
+## Configuration Layers & Precedence
+
+Kiln resolves configuration dynamically by merging multiple layers in order of precedence. If the same configuration key is specified in multiple layers, the layer with the higher precedence wins.
+
+Here are the five configuration layers, ordered by precedence from highest (Layer 1) to lowest (Layer 5):
+
+* **Layer 1: CLI Overrides** (`LayerCLIOverride`)
+  - The highest precedence values. These are supplied at runtime via CLI flags or matching `KILN_*` environment variables.
+* **Layer 2: User Configuration** (`LayerUserConfig`)
+  - Values defined in the user's primary project configuration file, `kiln.config.yaml`.
+* **Layer 3: Environment Defaults** (`LayerEnvironmentDefaults`)
+  - Values loaded from files specific to the active environment under `environments/<env>.yaml` (e.g., `environments/development.yaml`).
+* **Layer 4: Plugin-declared Defaults** (`LayerPluginDefaults`)
+  - Default configuration values declared by plugins.
+  - *Note:* Since plugin loading is not yet implemented, this layer is currently empty. It will be active once plugin loading is introduced.
+* **Layer 5: Core Defaults** (`LayerCoreDefaults`)
+  - Built-in defaults defined by Kiln itself (e.g., `kiln.target = "compose"`).
+  - This layer is always present to provide base fallback values.
+
+---
+
+## The SchemaProvider Mechanism
+
+To ensure Kiln knows how to validate configuration keys before merging layers, it compiles a schema registry. This is managed by the `SchemaProvider` interface:
+
+```go
+type SchemaProvider interface {
+	ConfigSchema() []Key
+}
+```
+
+- Any component (such as core Kiln or a plugin) can implement `SchemaProvider` to expose the configuration keys it expects.
+- During resolution, Kiln gathers schemas from all registered providers, merges them, and validates incoming layer values against these schemas.
+- If two different sources try to declare the same configuration key, Kiln will immediately report a duplicate key declaration error to prevent conflicting definitions.
