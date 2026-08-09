@@ -670,3 +670,168 @@ func TestResolveError(t *testing.T) {
 		t.Errorf("expected %q, got %q", expectedMsg, msg)
 	}
 }
+
+func TestResolve_SpecialForms(t *testing.T) {
+	t.Parallel()
+
+	customProvider := mockSchemaProvider{
+		keys: []Key{
+			{
+				Namespace: "db",
+				Key:       "host",
+				Type:      TypeString,
+			},
+			{
+				Namespace: "db",
+				Key:       "alias",
+				Type:      TypeString,
+			},
+			{
+				Namespace: "db",
+				Key:       "password",
+				Type:      TypeString,
+			},
+			{
+				Namespace: "db",
+				Key:       "token",
+				Type:      TypeString,
+			},
+		},
+	}
+
+	providers := []SchemaProvider{customProvider}
+	layers := []Layer{
+		{
+			Source: LayerUserConfig,
+			Values: map[string]any{
+				"project.name": "test",
+				"db.host":      "localhost",
+				"db.alias":     RefSpec{TargetKey: "db.host"},
+				"db.password":  GenerateSpec{Length: 16},
+				"db.token":     SecretRef{KeyName: "my-token"},
+			},
+		},
+	}
+
+	cfg, err := Resolve(providers, layers)
+	if err != nil {
+		t.Fatalf("unexpected error resolving special forms: %v", err)
+	}
+
+	// Verify !ref resolves
+	alias, ok := cfg.Get("db.alias")
+	if !ok {
+		t.Fatalf("db.alias not found")
+	}
+	if alias.Value != "localhost" || alias.Source != LayerUserConfig || alias.Type != TypeString {
+		t.Errorf("expected db.alias to resolve to localhost, got %+v", alias)
+	}
+
+	// Verify !generate is Pending
+	pwd, ok := cfg.Get("db.password")
+	if !ok {
+		t.Fatalf("db.password not found")
+	}
+	if pwd.Value != nil || !pwd.Pending || pwd.PendingReason != "value is !generate; requires .kiln/state.json, which is not yet available" {
+		t.Errorf("expected db.password to be pending generate, got %+v", pwd)
+	}
+
+	// Verify !secret is Pending and Secret is true
+	tok, ok := cfg.Get("db.token")
+	if !ok {
+		t.Fatalf("db.token not found")
+	}
+	if tok.Value != nil || !tok.Pending || !tok.Secret || tok.PendingReason != "value is !secret; requires a SecretProvider, which is not yet configured" {
+		t.Errorf("expected db.token to be pending secret, got %+v", tok)
+	}
+}
+
+func TestResolve_SpecialFormsErrors(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		providers []SchemaProvider
+		layers    []Layer
+		wantErr   string
+	}{
+		{
+			name: "ref to unknown key",
+			providers: []SchemaProvider{
+				mockSchemaProvider{
+					keys: []Key{
+						{Namespace: "db", Key: "host", Type: TypeString},
+					},
+				},
+			},
+			layers: []Layer{
+				{
+					Source: LayerUserConfig,
+					Values: map[string]any{
+						"project.name": "test",
+						"db.host":      RefSpec{TargetKey: "db.nonexistent"},
+					},
+				},
+			},
+			wantErr: `config key "db.host": !ref target "db.nonexistent" does not exist`,
+		},
+		{
+			name: "ref cycle of length 2",
+			providers: []SchemaProvider{
+				mockSchemaProvider{
+					keys: []Key{
+						{Namespace: "db", Key: "a", Type: TypeString},
+						{Namespace: "db", Key: "b", Type: TypeString},
+					},
+				},
+			},
+			layers: []Layer{
+				{
+					Source: LayerUserConfig,
+					Values: map[string]any{
+						"project.name": "test",
+						"db.a":         RefSpec{TargetKey: "db.b"},
+						"db.b":         RefSpec{TargetKey: "db.a"},
+					},
+				},
+			},
+			wantErr: `config key "db.a": !ref cycle detected (db.a -> db.b -> db.a)`,
+		},
+		{
+			name: "ref cycle of length 3",
+			providers: []SchemaProvider{
+				mockSchemaProvider{
+					keys: []Key{
+						{Namespace: "db", Key: "a", Type: TypeString},
+						{Namespace: "db", Key: "b", Type: TypeString},
+						{Namespace: "db", Key: "c", Type: TypeString},
+					},
+				},
+			},
+			layers: []Layer{
+				{
+					Source: LayerUserConfig,
+					Values: map[string]any{
+						"project.name": "test",
+						"db.a":         RefSpec{TargetKey: "db.b"},
+						"db.b":         RefSpec{TargetKey: "db.c"},
+						"db.c":         RefSpec{TargetKey: "db.a"},
+					},
+				},
+			},
+			wantErr: `config key "db.a": !ref cycle detected (db.a -> db.b -> db.c -> db.a)`,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := Resolve(tc.providers, tc.layers)
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			}
+			if !strings.Contains(err.Error(), tc.wantErr) {
+				t.Fatalf("expected error containing %q, got %q", tc.wantErr, err.Error())
+			}
+		})
+	}
+}

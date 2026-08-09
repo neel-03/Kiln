@@ -174,3 +174,29 @@ type SchemaProvider interface {
 - Any component (such as core Kiln or a plugin) can implement `SchemaProvider` to expose the configuration keys it expects.
 - During resolution, Kiln gathers schemas from all registered providers, merges them, and validates incoming layer values against these schemas.
 - If two different sources try to declare the same configuration key, Kiln will immediately report a duplicate key declaration error to prevent conflicting definitions.
+
+---
+
+## Special Value Forms
+
+Kiln supports three special value forms when decoding values from configuration layers: `!generate`, `!secret`, and `!ref`. These tags allow for dynamic, secret, and referenced configuration patterns.
+
+### `!ref <target.key>`
+
+References another configuration key.
+- **Resolution**: Fully resolved during configuration resolution. The target key's resolved value, type, and source are copied to the referencing key.
+- **Errors**:
+  - Resolving a reference to a nonexistent key is a hard error.
+  - Cyclic references (e.g., key `A` referencing key `B`, which references key `A`) are automatically detected and result in a resolution failure, reporting the full cycle path.
+
+### `!generate {length: N}`
+
+Instructs Kiln to generate a random string of length `N` (where `N` is a positive integer).
+- **Resolution**: Deliberately deferred. The generated value is not computed or persisted during this resolution phase. Stable generation requires state persistence, which will be introduced later.
+- **State**: The key is marked as `Pending: true` with a reason indicating that state persistence is required, and its value remains empty.
+
+### `!secret <secret_name>`
+
+References a secret retrieved from a secret manager or provider.
+- **Resolution**: Deliberately deferred. Resolving secret values requires a configured secret provider, which will be introduced later.
+- **State**: The key is marked as `Pending: true` with a reason indicating that a secret provider is required, its value remains empty, and its metadata is marked as `Secret: true` so that it is redacted in displays.
