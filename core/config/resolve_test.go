@@ -573,6 +573,31 @@ func TestResolve_Errors(t *testing.T) {
 			},
 			wantErr: `db.port: expected int, got string "<redacted>"`,
 		},
+		{
+			name: "secret duration parse failure redaction",
+			providers: []SchemaProvider{
+				mockSchemaProvider{
+					keys: []Key{
+						{
+							Namespace: "db",
+							Key:       "timeout",
+							Type:      TypeDuration,
+							Secret:    true,
+						},
+					},
+				},
+			},
+			layers: []Layer{
+				{
+					Source: LayerUserConfig,
+					Values: map[string]any{
+						"project.name": "test",
+						"db.timeout":   "s3cr3t-token",
+					},
+				},
+			},
+			wantErr: `db.timeout: invalid duration "<redacted>"`,
+		},
 	}
 
 	for _, tc := range tests {
