@@ -350,6 +350,12 @@ func (r *refResolver) resolveKey(keyName string, path []string) (ResolvedValue, 
 	}
 
 	val = r.copyTargetValue(val, targetVal)
+	if key, ok := r.schema[keyName]; ok && !val.Pending && !isSpecialForm(val.Value) && val.Value != nil {
+		if err := key.Validate(val.Value); err != nil {
+			r.errs.Append("config key %q: !ref target %q: %v", keyName, ref.TargetKey, err)
+			return ResolvedValue{}, false
+		}
+	}
 	r.cache[keyName] = val
 	return val, true
 }
@@ -371,10 +377,10 @@ func (r *refResolver) detectCycle(keyName string, path []string) bool {
 	return false
 }
 
-// copyTargetValue copies Value, Type, Source, Secret, and Pending state from targetVal to val.
+// copyTargetValue copies Value, Source, Secret, and Pending state from targetVal to val.
+// The referencing key keeps its own schema-declared Type.
 func (r *refResolver) copyTargetValue(val ResolvedValue, targetVal ResolvedValue) ResolvedValue {
 	val.Value = targetVal.Value
-	val.Type = targetVal.Type
 	val.Source = targetVal.Source
 	if targetVal.Secret {
 		val.Secret = true

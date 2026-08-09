@@ -821,6 +821,28 @@ func TestResolve_SpecialFormsErrors(t *testing.T) {
 			},
 			wantErr: `config key "db.a": !ref cycle detected (db.a -> db.b -> db.c -> db.a)`,
 		},
+		{
+			name: "ref target mismatched declared type",
+			providers: []SchemaProvider{
+				mockSchemaProvider{
+					keys: []Key{
+						{Namespace: "db", Key: "port", Type: TypeInt},
+						{Namespace: "db", Key: "host", Type: TypeString},
+					},
+				},
+			},
+			layers: []Layer{
+				{
+					Source: LayerUserConfig,
+					Values: map[string]any{
+						"project.name": "test",
+						"db.host":      "localhost",
+						"db.port":      RefSpec{TargetKey: "db.host"},
+					},
+				},
+			},
+			wantErr: `config key "db.port": !ref target "db.host": db.port: expected int, got string "localhost"`,
+		},
 	}
 
 	for _, tc := range tests {

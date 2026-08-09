@@ -90,6 +90,16 @@ func TestTaggedValue_UnmarshalYAML(t *testing.T) {
 			wantErr: "invalid !ref value: target key must not be empty",
 		},
 		{
+			name:    "valid !secret tag with spaces to be trimmed",
+			yamlStr: `!secret "  my-secret-key   "`,
+			wantVal: SecretRef{KeyName: "my-secret-key"},
+		},
+		{
+			name:    "valid !ref tag with spaces to be trimmed",
+			yamlStr: `!ref "  other.key   "`,
+			wantVal: RefSpec{TargetKey: "other.key"},
+		},
+		{
 			name:    "unsupported custom tag",
 			yamlStr: `!bogus value`,
 			wantErr: `unsupported value tag "!bogus"`,

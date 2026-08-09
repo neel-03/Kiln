@@ -184,7 +184,8 @@ Kiln supports three special value forms when decoding values from configuration 
 ### `!ref <target.key>`
 
 References another configuration key.
-- **Resolution**: Fully resolved during configuration resolution. The target key's resolved value, type, and source are copied to the referencing key.
+- **Resolution**: Fully resolved during configuration resolution. The target key's resolved value and source are copied to the referencing key. The referencing key keeps its own schema-declared type, and the copied value is validated against it.
+- **Deferred targets**: If the target is `!generate` or `!secret`, the referencing key also becomes `Pending: true` and inherits the target's pending reason. If the target is marked secret, the referencing key is marked `Secret: true`.
 - **Errors**:
   - Resolving a reference to a nonexistent key is a hard error.
   - Cyclic references (e.g., key `A` referencing key `B`, which references key `A`) are automatically detected and result in a resolution failure, reporting the full cycle path.

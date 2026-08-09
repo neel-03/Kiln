@@ -144,7 +144,8 @@ func (v *TaggedValue) unmarshalStringTag(node *yaml.Node, tag string, fieldName 
 		return "", fmt.Errorf("invalid %s value: %w", tag, err)
 	}
 
-	if strings.TrimSpace(val) == "" {
+	val = strings.TrimSpace(val)
+	if val == "" {
 		return "", fmt.Errorf("invalid %s value: %s must not be empty", tag, fieldName)
 	}
 
