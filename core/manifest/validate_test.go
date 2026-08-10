@@ -232,6 +232,22 @@ func TestValidate(t *testing.T) {
 		},
 
 		{
+			name: "plugin path pointing to a regular file instead of a directory",
+			modify: func(m *ProjectManifest) {
+				m.Plugins = []PluginRef{
+					{
+						Path: "valid.kiln.yaml",
+					},
+				}
+			},
+			dir:     ptr("testdata"),
+			wantErr: true,
+			errContains: []string{
+				`plugins[0]: path "valid.kiln.yaml" is not a directory`,
+			},
+		},
+
+		{
 			name: "plugin path check skipped if dir is empty",
 			modify: func(m *ProjectManifest) {
 				m.Plugins = []PluginRef{

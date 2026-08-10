@@ -146,8 +146,11 @@ func validatePluginPaths(ve *ValidationError, m *ProjectManifest, dir string) {
 	for i, plugin := range m.Plugins {
 		if plugin.Path != "" && plugin.Module == "" {
 			path := filepath.Join(dir, plugin.Path)
-			if _, err := os.Stat(path); err != nil {
+			info, err := os.Stat(path)
+			if err != nil {
 				ve.Append("plugins[%d]: path %q does not exist", i, plugin.Path)
+			} else if !info.IsDir() {
+				ve.Append("plugins[%d]: path %q is not a directory", i, plugin.Path)
 			}
 		}
 	}
