@@ -38,3 +38,18 @@ When you load a project manifest, the compiler enforces the following structural
   * `init`: Database migrations, seeding, or basic app setup.
   * `post-init`: Final checks and post-start configuration.
   * `runtime`: Long-lived operations or runtime verification.
+
+### 6. Cross-Reference Validation
+To ensure logical consistency and prevent deployment failures due to misconfigured service or task dependencies, the manifest validates references between services, tasks, and plugin paths:
+
+* **Service Dependencies (`depends_on`)**:
+  - Every service listed under a service's `depends_on` array must exist within the `services` block.
+  - A service cannot list itself as a dependency (self-dependency is prohibited).
+* **Task Execution Target (`runs_on`)**:
+  - The service name specified in a task's `runs_on` field must exist within the `services` block.
+* **Task Dependencies (`depends_on`)**:
+  - Every entry in a task's `depends_on` array must resolve to a valid target.
+  - Suffixes of `.ready` are checked against the names of services in the `services` block (representing a dependency on that service being healthy).
+  - All other dependency targets without a `.ready` suffix are checked against the names of other tasks in the `tasks` block.
+* **Plugin Paths (`path`)**:
+  - When referencing local plugins with a `path` property, the target directory must exist relative to the directory containing the project manifest file. (Pure in-memory manifest validations may skip this check).
