@@ -51,7 +51,7 @@ tasks:
       - up
 
     depends_on:
-      - postgres
+      - postgres.ready
 
     phase: pre-init
 

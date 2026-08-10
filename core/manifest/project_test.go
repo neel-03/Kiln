@@ -199,7 +199,7 @@ func assertValidManifest(t *testing.T, m *ProjectManifest) {
 	if len(initTask.DependsOn) != 1 {
 		t.Fatalf("unexpected task depends_on length: %d", len(initTask.DependsOn))
 	}
-	if initTask.DependsOn[0] != "postgres" {
+	if initTask.DependsOn[0] != "postgres.ready" {
 		t.Fatalf("unexpected task depends_on: %q", initTask.DependsOn[0])
 	}
 

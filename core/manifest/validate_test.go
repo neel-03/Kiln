@@ -5,12 +5,17 @@ import (
 	"testing"
 )
 
+func ptr(s string) *string {
+	return &s
+}
+
 func TestValidate(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name        string
 		modify      func(*ProjectManifest)
+		dir         *string
 		wantErr     bool
 		errContains []string
 	}{
@@ -122,6 +127,122 @@ func TestValidate(t *testing.T) {
 				`tasks.init-db.phase: invalid value "startup"`,
 			},
 		},
+
+		{
+			name: "service depends_on nonexistent service",
+			modify: func(m *ProjectManifest) {
+				s := m.Services["web"]
+				s.DependsOn = []string{"nonexistent"}
+				m.Services["web"] = s
+			},
+			wantErr: true,
+			errContains: []string{
+				`services.web.depends_on: references unknown service "nonexistent"`,
+			},
+		},
+
+		{
+			name: "service depends_on itself",
+			modify: func(m *ProjectManifest) {
+				s := m.Services["web"]
+				s.DependsOn = []string{"web"}
+				m.Services["web"] = s
+			},
+			wantErr: true,
+			errContains: []string{
+				`services.web.depends_on: service cannot depend on itself`,
+			},
+		},
+
+		{
+			name: "task runs_on nonexistent service",
+			modify: func(m *ProjectManifest) {
+				task := m.Tasks["init-db"]
+				task.RunsOn = "nonexistent"
+				m.Tasks["init-db"] = task
+			},
+			wantErr: true,
+			errContains: []string{
+				`tasks.init-db.runs_on: references unknown service "nonexistent"`,
+			},
+		},
+
+		{
+			name: "task depends_on nonexistent task",
+			modify: func(m *ProjectManifest) {
+				task := m.Tasks["init-db"]
+				task.DependsOn = []string{"nonexistent-task"}
+				m.Tasks["init-db"] = task
+			},
+			wantErr: true,
+			errContains: []string{
+				`tasks.init-db.depends_on: references unknown task or service "nonexistent-task"`,
+			},
+		},
+
+		{
+			name: "task depends_on valid service.ready",
+			modify: func(m *ProjectManifest) {
+				task := m.Tasks["init-db"]
+				task.DependsOn = []string{"postgres.ready"}
+				m.Tasks["init-db"] = task
+			},
+			wantErr: false,
+		},
+
+		{
+			name: "task depends_on invalid service.ready prefix",
+			modify: func(m *ProjectManifest) {
+				task := m.Tasks["init-db"]
+				task.DependsOn = []string{"nonexistent-service.ready"}
+				m.Tasks["init-db"] = task
+			},
+			wantErr: true,
+			errContains: []string{
+				`tasks.init-db.depends_on: references unknown task or service "nonexistent-service.ready"`,
+			},
+		},
+
+		{
+			name: "plugin path pointing to nonexistent directory",
+			modify: func(m *ProjectManifest) {
+				m.Plugins = []PluginRef{
+					{
+						Path: "./plugins/nonexistent-plugin",
+					},
+				}
+			},
+			wantErr: true,
+			errContains: []string{
+				`plugins[0]: path "./plugins/nonexistent-plugin" does not exist`,
+			},
+		},
+
+		{
+			name: "plugin path pointing to real directory",
+			modify: func(m *ProjectManifest) {
+				m.Plugins = []PluginRef{
+					{
+						Path: "postgres",
+					},
+				}
+			},
+			dir:     ptr("testdata/plugins"),
+			wantErr: false,
+		},
+
+		{
+			name: "plugin path check skipped if dir is empty",
+			modify: func(m *ProjectManifest) {
+				m.Plugins = []PluginRef{
+					{
+						Path: "./plugins/nonexistent-plugin",
+					},
+				}
+			},
+			dir:     ptr(""),
+			wantErr: false,
+		},
 	}
 
 	for _, tc := range tests {
@@ -138,7 +259,11 @@ func TestValidate(t *testing.T) {
 				tc.modify(m)
 			}
 
-			err = Validate(m)
+			dir := "testdata"
+			if tc.dir != nil {
+				dir = *tc.dir
+			}
+			err = Validate(m, dir)
 
 			if tc.wantErr {
 
@@ -180,7 +305,7 @@ func TestValidationAccumulatesErrors(t *testing.T) {
 
 	m.Metadata.Name = "INVALID"
 
-	err = Validate(m)
+	err = Validate(m, "testdata")
 
 	if err == nil {
 		t.Fatal("expected validation error")
@@ -204,7 +329,7 @@ func TestValidationAccumulatesErrors(t *testing.T) {
 
 func TestValidateNilManifest(t *testing.T) {
 
-	if err := Validate(nil); err == nil {
+	if err := Validate(nil, ""); err == nil {
 		t.Fatal("expected error")
 	}
 }
