@@ -146,8 +146,19 @@ func runInit(cmd *cobra.Command, opts *initOptions) error {
 
 	configPath := filepath.Join(targetDir, kilnConfigFile)
 
-	if err := os.WriteFile(configPath, configData, 0o644); err != nil {
-		return fmt.Errorf("writing %s: %w", kilnConfigFile, err)
+	// kiln.config.yaml holds local overrides and is gitignored, so never
+	// replace it silently.
+	configExists := false
+	if _, err := os.Stat(configPath); err == nil {
+		configExists = true
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("checking for existing %s: %w", kilnConfigFile, err)
+	}
+
+	if !configExists || opts.force {
+		if err := os.WriteFile(configPath, configData, 0o644); err != nil {
+			return fmt.Errorf("writing %s: %w", kilnConfigFile, err)
+		}
 	}
 
 	if err := ensurePluginsDirectory(targetDir); err != nil {

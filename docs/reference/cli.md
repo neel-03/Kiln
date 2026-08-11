@@ -20,6 +20,8 @@ The following global flags apply to all or most commands within Kiln:
 
 Scaffold a new project in the current directory. This creates a `kiln.yaml` manifest file, a local overrides `kiln.config.yaml` file, and an empty `plugins/` directory.
 
+The command also creates `.gitignore` if it does not exist, and appends the `.kiln/` and `kiln.config.yaml` entries if they are missing. Existing entries are not duplicated.
+
 #### Flags
 
 * `--template=<name>`: Starter template to use. Currently supports only the `blank` template (default).

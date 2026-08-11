@@ -21,12 +21,16 @@ func TestMain(m *testing.M) {
 // and appends entries to .gitignore.
 func TestInitSuccess(t *testing.T) {
 	tmpDir := t.TempDir()
+	targetDir := filepath.Join(tmpDir, "My-Test-Project_Name")
+	if err := os.Mkdir(targetDir, 0o755); err != nil {
+		t.Fatalf("failed to create target directory: %v", err)
+	}
 
 	oldWd, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("failed to get current working directory: %v", err)
 	}
-	if err := os.Chdir(tmpDir); err != nil {
+	if err := os.Chdir(targetDir); err != nil {
 		t.Fatalf("failed to change working directory: %v", err)
 	}
 	defer func() {
@@ -52,11 +56,11 @@ func TestInitSuccess(t *testing.T) {
 		t.Errorf("expected output:\n%q\ngot:\n%q", expectedOutput, buf.String())
 	}
 
-	manifestPath := filepath.Join(tmpDir, "kiln.yaml")
-	configPath := filepath.Join(tmpDir, "kiln.config.yaml")
-	pluginsPath := filepath.Join(tmpDir, "plugins")
+	manifestPath := filepath.Join(targetDir, "kiln.yaml")
+	configPath := filepath.Join(targetDir, "kiln.config.yaml")
+	pluginsPath := filepath.Join(targetDir, "plugins")
 	gitkeepPath := filepath.Join(pluginsPath, ".gitkeep")
-	gitignorePath := filepath.Join(tmpDir, ".gitignore")
+	gitignorePath := filepath.Join(targetDir, ".gitignore")
 
 	if _, err := os.Stat(manifestPath); err != nil {
 		t.Errorf("kiln.yaml not created: %v", err)
@@ -73,10 +77,10 @@ func TestInitSuccess(t *testing.T) {
 
 	loaded, err := manifest.LoadProjectManifest(manifestPath)
 	if err != nil {
-		t.Errorf("failed to load generated manifest: %v", err)
+		t.Fatalf("failed to load generated manifest: %v", err)
 	}
 
-	expectedName := sanitizeProjectName(filepath.Base(tmpDir))
+	expectedName := "my-test-project-name"
 	if loaded.Metadata.Name != expectedName {
 		t.Errorf("expected project name %q, got %q", expectedName, loaded.Metadata.Name)
 	}
@@ -366,5 +370,30 @@ func TestInitSuccessColor(t *testing.T) {
 	}
 	if !strings.Contains(outStr, "\033[1;36mkiln.yaml\033[0m") {
 		t.Errorf("expected output to contain bold cyan 'kiln.yaml', got:\n%q", outStr)
+	}
+}
+
+// TestSanitizeProjectName verifies the sanitizeProjectName logic with multiple input strings.
+func TestSanitizeProjectName(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"My Project", "my-project"},
+		{"  My Project  ", "my-project"},
+		{"_my_project!", "my-project"},
+		{"abc-123", "abc-123"},
+		{"-abc-", "abc"},
+		{"", "kiln"},
+		{"!!!", "kiln"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.input, func(t *testing.T) {
+			got := sanitizeProjectName(tc.input)
+			if got != tc.expected {
+				t.Errorf("expected sanitizeProjectName(%q) = %q, got %q", tc.input, tc.expected, got)
+			}
+		})
 	}
 }
