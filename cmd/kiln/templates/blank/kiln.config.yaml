@@ -1,0 +1,5 @@
+# This file contains local development configuration overrides.
+# It is gitignored by default.
+kiln:
+  target: compose
+  env: development
