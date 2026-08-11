@@ -155,10 +155,12 @@ func runInit(cmd *cobra.Command, opts *initOptions) error {
 		return fmt.Errorf("checking for existing %s: %w", kilnConfigFile, err)
 	}
 
+	configWritten := false
 	if !configExists || opts.force {
 		if err := os.WriteFile(configPath, configData, 0o644); err != nil {
 			return fmt.Errorf("writing %s: %w", kilnConfigFile, err)
 		}
+		configWritten = true
 	}
 
 	if err := ensurePluginsDirectory(targetDir); err != nil {
@@ -174,12 +176,20 @@ func runInit(cmd *cobra.Command, opts *initOptions) error {
 
 	if noColor {
 		_, _ = fmt.Fprintln(out, "Created kiln.yaml")
-		_, _ = fmt.Fprintln(out, "Created kiln.config.yaml")
+		if configWritten {
+			_, _ = fmt.Fprintln(out, "Created kiln.config.yaml")
+		} else {
+			_, _ = fmt.Fprintln(out, "Preserved kiln.config.yaml")
+		}
 		_, _ = fmt.Fprintln(out, "Created plugins/")
 		_, _ = fmt.Fprintln(out, "Next: edit kiln.config.yaml, then run `kiln doctor`")
 	} else {
 		_, _ = fmt.Fprintln(out, "\033[32m✔\033[0m Created \033[1;36mkiln.yaml\033[0m")
-		_, _ = fmt.Fprintln(out, "\033[32m✔\033[0m Created \033[1;36mkiln.config.yaml\033[0m")
+		if configWritten {
+			_, _ = fmt.Fprintln(out, "\033[32m✔\033[0m Created \033[1;36mkiln.config.yaml\033[0m")
+		} else {
+			_, _ = fmt.Fprintln(out, "\033[32m✔\033[0m Preserved \033[1;36mkiln.config.yaml\033[0m")
+		}
 		_, _ = fmt.Fprintln(out, "\033[32m✔\033[0m Created \033[1;36mplugins/\033[0m")
 		_, _ = fmt.Fprintln(out)
 		_, _ = fmt.Fprintln(out, "\033[1;33mNext Steps:\033[0m")

@@ -397,3 +397,50 @@ func TestSanitizeProjectName(t *testing.T) {
 		})
 	}
 }
+
+// TestInitPreservesExistingConfig verifies that we preserve any existing kiln.config.yaml
+// file when running init without the force flag, and that the success output logs
+// that the config file was preserved.
+func TestInitPreservesExistingConfig(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	oldWd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current working directory: %v", err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("failed to change working directory: %v", err)
+	}
+	defer func() {
+		_ = os.Chdir(oldWd)
+	}()
+
+	configPath := filepath.Join(tmpDir, "kiln.config.yaml")
+	customConfig := []byte("custom: true\n")
+	if err := os.WriteFile(configPath, customConfig, 0o644); err != nil {
+		t.Fatalf("failed to write custom config: %v", err)
+	}
+
+	cmd := newInitCmd()
+
+	var buf bytes.Buffer
+	cmd.SetOut(&buf)
+
+	err = cmd.Execute()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	outStr := buf.String()
+	if !strings.Contains(outStr, "Preserved kiln.config.yaml") {
+		t.Errorf("expected output to contain 'Preserved kiln.config.yaml', got:\n%q", outStr)
+	}
+
+	content, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("failed to read config file: %v", err)
+	}
+	if string(content) != string(customConfig) {
+		t.Errorf("expected config file content to be preserved, got:\n%q", string(content))
+	}
+}
