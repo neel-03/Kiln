@@ -6,16 +6,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"strings"
 
 	"github.com/neel-03/Kiln/core"
 )
-
-const projectNameRegex string = "^[a-z0-9][a-z0-9-]*$"
-
-var projectNamePattern = regexp.MustCompile(projectNameRegex)
 
 // ValidationError aggregates all manifest validation failures.
 //
@@ -96,9 +91,10 @@ func validateHeader(ve *ValidationError, m *ProjectManifest) {
 		)
 	}
 
-	if !projectNamePattern.MatchString(m.Metadata.Name) {
+	if !core.ProjectNamePattern.MatchString(m.Metadata.Name) {
 		ve.Append(
-			`metadata.name: must match pattern ^[a-z0-9][a-z0-9-]*$, got %q`,
+			`metadata.name: must match pattern %s, got %q`,
+			core.ProjectNameRegex,
 			m.Metadata.Name,
 		)
 	}

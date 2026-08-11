@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -59,5 +60,24 @@ func newRootCmd() *cobra.Command {
 	flags.BoolVar(&opts.NoColor, "no-color", false, "Disable ANSI color output.")
 	flags.CountVarP(&opts.Verbosity, "verbose", "v", "Increase log verbosity (repeatable).")
 
+	rootCmd.AddCommand(
+		newInitCmd(),
+	)
+
 	return rootCmd
+}
+
+// getNoColor returns true if color output should be disabled.
+// It checks both the --no-color flag and the standard NO_COLOR environment variable.
+func getNoColor(cmd *cobra.Command) bool {
+	if os.Getenv("NO_COLOR") != "" {
+		return true
+	}
+
+	// Try to get the persistent flag from the command or parent command context
+	noColor, err := cmd.Flags().GetBool("no-color")
+	if err != nil {
+		return false
+	}
+	return noColor
 }

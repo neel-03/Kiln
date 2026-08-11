@@ -1,0 +1,9 @@
+# Project metadata for the Kiln build system.
+
+apiVersion: kiln/v1
+kind: Project
+metadata:
+  name: __KILN_PROJECT_NAME__
+plugins: []
+services: {}
+tasks: {}
